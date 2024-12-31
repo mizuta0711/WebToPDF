@@ -12,7 +12,6 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -22,7 +21,7 @@
                       DockPanel.Dock="Left"
                       VerticalAlignment="Center"
                       Margin="0,0,10,0" />
-            <TextBox x:Name="StartUrlTextBox" Text="https://ubiquitous-clavicle-60c.notion.site/16dca601742680c48d71d4d0544573dd" />
+            <TextBox x:Name="StartUrlTextBox" Text="" />
         </DockPanel>
 
         <!-- プレフィックスURL入力 -->
@@ -32,7 +31,7 @@
                       VerticalAlignment="Center"
                       Margin="0,0,10,0" />
             <TextBox x:Name="PrefixTextBox"
-                     Text="https://ubiquitous-clavicle-60c.notion.site/"
+                     Text=""
                      ToolTip="このプレフィックスで始まるURLのみをクロールします。空欄の場合は制限なし。" />
         </DockPanel>
 
@@ -47,30 +46,8 @@
                      ToolTip="このサフィックスで終わるURLのみをクロールします。空欄の場合は制限なし。" />
         </DockPanel>
 
-        <!-- クロール設定 -->
-        <GroupBox Grid.Row="3"
-                  Header="クロール設定"
-                  Margin="0,0,0,10"
-                  Padding="10">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="100" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="最大ページ数:"
-                          Grid.Column="0"
-                          VerticalAlignment="Center"
-                          Margin="0,0,10,0" />
-                <TextBox x:Name="MaxPagesTextBox"
-                        Grid.Column="1"
-                        Text="0"
-                        ToolTip="0の場合は無制限" />
-            </Grid>
-        </GroupBox>
-
         <!-- 進捗表示とコントロール -->
-        <Grid Grid.Row="4">
+        <Grid Grid.Row="3">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
