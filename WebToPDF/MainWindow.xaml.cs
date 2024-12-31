@@ -4,11 +4,16 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-
-using Microsoft.Win32;
-
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Support.UI;
+using System.Windows.Forms;
+using Newtonsoft.Json.Linq;
+using OpenQA.Selenium.DevTools;
+using MessageBox = System.Windows.MessageBox;
+using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
+using iText.Kernel.Pdf;
+using System.Threading;
 
 namespace WebToPDF
 {
@@ -24,7 +29,7 @@ namespace WebToPDF
             InitializeComponent();
         }
 
-        private async void StartButton_Clicked(object sender, RoutedEventArgs e)
+        private async void StartButton_Click(object sender, RoutedEventArgs e)
         {
             Log("準備完了");
             string startUrl = StartUrlTextBox.Text.Trim();
@@ -37,11 +42,20 @@ namespace WebToPDF
                 return;
             }
 
-            Log("クローリングを開始します...");
-            await Task.Run(() => StartCrawling(startUrl));
+            using var dialog = new FolderBrowserDialog
+            {
+                Description = "PDFの保存先フォルダを選択してください",
+                UseDescriptionForTitle = true
+            };
+
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                Log("クローリングを開始します...");
+                await Task.Run(() => StartCrawling(startUrl, dialog.SelectedPath));
+            }
         }
 
-        private void StartCrawling(string startUrl)
+        private void StartCrawling(string startUrl, string outputFolder)
         {
             var options = new ChromeOptions();
             options.AddArgument("--headless"); // ヘッドレスモード
@@ -52,6 +66,7 @@ namespace WebToPDF
 
                 urlQueue.Enqueue(startUrl);
 
+                int count = 0;
                 while (urlQueue.Any())
                 {
                     string currentUrl = urlQueue.Dequeue();
@@ -65,12 +80,29 @@ namespace WebToPDF
                     try
                     {
                         driver.Navigate().GoToUrl(currentUrl);
-                        string title = driver.Title;
-                        Log($"タイトル: {title}");
+                        Thread.Sleep(2000); // ページの読み込みを待機
 
-                        string pdfFileName = GetPdfFileName(title);
-                        SavePageAsPdf(driver, pdfFileName);
-                        Log($"PDFを保存しました: {pdfFileName}");
+                        // ページタイトルを取得
+                        string pageTitle = driver.Title;
+                        Log($"タイトル: {pageTitle}");
+
+                        // Notionの特定の要素を待機
+                        try
+                        {
+                            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+                            wait.Until(d => d.FindElement(By.CssSelector(".notion-page-content")));
+                        }
+                        catch (WebDriverTimeoutException)
+                        {
+                            // Notionページでない場合は無視
+                        }
+
+                        // ファイル名を作成（URLの不正な文字を除去）
+                        var safeTitle = string.Join("_", pageTitle.Split(Path.GetInvalidFileNameChars()));
+                        var fileName = $"{++count:D3}_{safeTitle}.pdf";
+                        var filePath = Path.Combine(outputFolder, fileName);
+                        SavePageAsPdf(driver, filePath);
+                        Log($"PDFを保存しました: {filePath}");
 
                         var links = GetLinksFromPage(driver);
                         foreach (var link in links)
@@ -147,26 +179,6 @@ namespace WebToPDF
         {
             return (string.IsNullOrEmpty(prefixFilter) || url.StartsWith(prefixFilter)) &&
                    (string.IsNullOrEmpty(suffixFilter) || url.EndsWith(suffixFilter));
-        }
-
-        private string GetPdfFileName(string title)
-        {
-            string sanitizedTitle = string.Join("_", title.Split(Path.GetInvalidFileNameChars()));
-            string defaultFileName = $"{DateTime.Now:yyyyMMdd_HHmmss}_{sanitizedTitle}.pdf";
-
-            var saveFileDialog = new SaveFileDialog
-            {
-                FileName = defaultFileName,
-                Filter = "PDF Files (*.pdf)|*.pdf",
-                Title = "保存するPDFファイルを選択してください"
-            };
-
-            if (saveFileDialog.ShowDialog() == true)
-            {
-                return saveFileDialog.FileName;
-            }
-
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), defaultFileName);
         }
 
         private void Log(string message)
